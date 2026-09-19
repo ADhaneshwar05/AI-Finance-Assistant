@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Dashboard - AI Finance Assistant</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Financial Dashboard</h1>
+
+    <p>Welcome to your personal finance overview.</p>
+
+
+    <!-- Summary Cards -->
+
+    <div class="dashboard-cards">
+
+        <div class="dashboard-card">
+            <h3>Total Income</h3>
+            <p>₹{{ total_income }}</p>
+        </div>
+
+        <div class="dashboard-card">
+            <h3>Total Expenses</h3>
+            <p>₹{{ total_expenses }}</p>
+        </div>
+
+        <div class="dashboard-card">
+            <h3>Balance</h3>
+            <p>₹{{ balance }}</p>
+        </div>
+
+    </div>
+     <!-- Predicted Monthly Spending -->
+
+    <div class="dashboard-section">
+
+        <h2>Predicted Monthly Spending</h2>
+
+        <div class="dashboard-card">
+
+            <p>₹{{ "%.2f"|format(predicted_spending) }}</p>
+
+        </div>
+
+    </div>
+
+
+   <!-- Budget Overview -->
+
+<div class="dashboard-section">
+
+    <h2>Budget Overview</h2>
+
+    {% if budget_overview %}
+
+    <div class="table-wrapper">
+
+        <table class="transaction-table">
+
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Monthly Budget</th>
+                    <th>Spent</th>
+                    <th>Remaining</th>
+                    <th>Used</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for budget in budget_overview %}
+
+                <tr>
+
+                    <td>
+                        {{ budget.category }}
+                    </td>
+
+                    <td>
+                        ₹{{ "%.2f"|format(budget.budget) }}
+                    </td>
+
+                    <td>
+                        ₹{{ "%.2f"|format(budget.spent) }}
+                    </td>
+
+                    <td>
+                        ₹{{ "%.2f"|format(budget.remaining) }}
+                    </td>
+
+                    <td>
+                        {{ "%.1f"|format(budget.percentage) }}%
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+    {% else %}
+
+        <p>No budgets set yet.</p>
+
+    {% endif %}
+
+</div>
+
+    <!-- Category Spending -->
+    <div class="dashboard-section">
+
+        <h2>Spending by Category</h2>
+
+        {% if category_spending %}
+
+        <div class="table-wrapper">
+
+            <table class="transaction-table">
+
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Total Spent</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for category, amount in category_spending.items() %}
+
+                    <tr>
+                        <td>{{ category }}</td>
+                        <td>₹{{ "%.2f"|format(amount) }}</td>
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        {% else %}
+
+            <p>No expense data available.</p>
+
+        {% endif %}
+
+    </div>
+        
+
+        <!-- Financial Insights -->
+
+    <div class="dashboard-section">
+
+        <h2>Financial Insights</h2>
+
+        {% if financial_insights %}
+
+            <ul>
+                {% for insight in financial_insights %}
+                    <li>{{ insight }}</li>
+                {% endfor %}
+            </ul>
+
+        {% else %}
+
+            <p>No financial insights available.</p>
+
+        {% endif %}
+
+    </div>
+        
+    <!-- Recent Transactions -->
+
+    <div class="dashboard-section">
+
+        <h2>Recent Transactions</h2>
+
+        {% if transactions %}
+
+        <div class="table-wrapper">
+
+            <table class="transaction-table">
+
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Amount</th>
+                        <th>Category</th>
+                        <th>Description</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for transaction in transactions %}
+
+                    <tr>
+
+                        <td>
+                            {{ transaction.type | title }}
+                        </td>
+
+                        <td>
+                            ₹{{ "%.2f"|format(transaction.amount) }}
+                        </td>
+
+                        <td>
+                            {{ transaction.category }}
+                        </td>
+
+                        <td>
+                            {{ transaction.description or "-" }}
+                        </td>
+
+                        <td>
+                            {{ transaction.date }}
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        {% else %}
+
+            <p>No transactions available.</p>
+
+        {% endif %}
+
+    </div>
+
+
+    <!-- Navigation -->
+
+<div class="dashboard-navigation">
+
+    <a class="nav-transactions" href="{{ url_for('main.transactions') }}">
+        Manage Transactions
+    </a>
+
+    <a class="nav-budgets" href="{{ url_for('main.budgets') }}">
+        Manage Budgets
+    </a>
+
+    <a class="nav-logout" href="{{ url_for('main.logout') }}">
+        Logout
+    </a>
+
+</div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,44 @@
+description,category
+lunch,Food
+dinner,Food
+breakfast,Food
+restaurant meal,Food
+food delivery,Food
+swiggy order,Food
+zomato order,Food
+pizza,Food
+coffee,Food
+groceries,Food
+bus ticket,Transport
+bus fare,Transport
+uber ride,Transport
+ola ride,Transport
+taxi fare,Transport
+metro ticket,Transport
+train ticket,Transport
+auto ride,Transport
+fuel,Transport
+petrol,Transport
+movie ticket,Entertainment
+netflix subscription,Entertainment
+spotify subscription,Entertainment
+video game,Entertainment
+gaming,Entertainment
+concert ticket,Entertainment
+entertainment,Entertainment
+shirt,Shopping
+shoes,Shopping
+clothes,Shopping
+shopping mall,Shopping
+amazon purchase,Shopping
+flipkart order,Shopping
+new jeans,Shopping
+dress,Shopping
+medicine,Health
+doctor consultation,Health
+hospital bill,Health
+pharmacy purchase,Health
+medical checkup,Health
+health checkup,Health
+prescription medicine,Health
+gym membership,Health
