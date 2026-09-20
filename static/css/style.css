@@ -99,7 +99,13 @@ button:hover {
     text-decoration: underline;
 }
 
+
+/* ================================
+   RESPONSIVE CONTAINER
+   ================================ */
+
 @media (max-width: 500px) {
+
     .container {
         width: calc(100% - 30px);
         padding: 30px 24px;
@@ -109,6 +115,8 @@ button:hover {
         font-size: 28px;
     }
 }
+
+
 /* ================================
    TRANSACTION HISTORY
    ================================ */
@@ -167,6 +175,8 @@ button:hover {
     margin-top: 20px;
     text-align: center;
 }
+
+
 /* ================================
    DASHBOARD
    ================================ */
@@ -206,14 +216,20 @@ button:hover {
     margin-bottom: 20px;
 }
 
-/* Give dashboard more space */
+
+/* ================================
+   DASHBOARD WIDTH
+   ================================ */
 
 body:has(.dashboard-cards) .container {
-    width: 850px;
+    width: 1000px;
     max-width: calc(100% - 30px);
 }
 
-/* Make dashboard table fit */
+
+/* ================================
+   DASHBOARD TRANSACTION TABLE
+   ================================ */
 
 .dashboard-section .transaction-table {
     table-layout: fixed;
@@ -250,6 +266,140 @@ body:has(.dashboard-cards) .container {
     width: 22%;
 }
 
+
+/* ================================
+   BUDGET OVERVIEW TABLE
+   ================================ */
+
+.budget-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    background: #ffffff;
+    table-layout: auto;
+}
+
+.budget-table th,
+.budget-table td {
+    padding: 14px 16px;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: middle;
+}
+
+.budget-table th {
+    font-weight: 600;
+    color: #334155;
+    white-space: nowrap;
+}
+
+.budget-table td {
+    font-size: 15px;
+    color: #172033;
+}
+
+/* Category */
+.budget-table th:nth-child(1),
+.budget-table td:nth-child(1) {
+    min-width: 120px;
+}
+
+/* Monthly Budget */
+.budget-table th:nth-child(2),
+.budget-table td:nth-child(2) {
+    min-width: 145px;
+    white-space: nowrap;
+}
+
+/* Spent */
+.budget-table th:nth-child(3),
+.budget-table td:nth-child(3) {
+    min-width: 130px;
+    white-space: nowrap;
+}
+
+/* Remaining */
+.budget-table th:nth-child(4),
+.budget-table td:nth-child(4) {
+    min-width: 140px;
+    white-space: nowrap;
+}
+
+/* Used */
+.budget-table th:nth-child(5),
+.budget-table td:nth-child(5) {
+    min-width: 100px;
+    white-space: nowrap;
+}
+
+/* Status */
+.budget-table th:nth-child(6),
+.budget-table td:nth-child(6) {
+    min-width: 170px;
+    width: 170px;
+    white-space: nowrap;
+    word-break: normal;
+    overflow-wrap: normal;
+}
+
+/* Budget table row hover */
+.budget-table tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+
+/* ================================
+   BUDGET STATUS
+   ================================ */
+
+.budget-status {
+    white-space: nowrap;
+    word-break: normal;
+    overflow-wrap: normal;
+    font-weight: 600;
+}
+
+
+/* ================================
+   BUDGET WARNING / ALERT
+   ================================ */
+
+.flash-messages {
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.flash-message {
+    padding: 15px 18px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    color: #172033;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.flash-message.warning {
+    border-color: #f59e0b;
+    background: #fffbeb;
+}
+
+.flash-message.danger {
+    border-color: #dc2626;
+    background: #fef2f2;
+}
+
+.flash-message.success {
+    border-color: #16a34a;
+    background: #f0fdf4;
+}
+
+
+/* ================================
+   DASHBOARD NAVIGATION
+   ================================ */
+
 .dashboard-navigation {
     margin-top: 25px;
 }
@@ -258,6 +408,7 @@ body:has(.dashboard-cards) .container {
     color: #0f766e;
     font-weight: 600;
     text-decoration: none;
+    margin: 0 5px;
 }
 
 .dashboard-navigation a:hover {
@@ -265,25 +416,9 @@ body:has(.dashboard-cards) .container {
 }
 
 
-/* Dashboard on smaller screens */
-
-@media (max-width: 700px) {
-
-    body:has(.dashboard-cards) .container {
-        width: calc(100% - 30px);
-        padding: 30px 20px;
-    }
-
-    .dashboard-cards {
-        grid-template-columns: 1fr;
-    }
-
-    .dashboard-section .transaction-table {
-        min-width: 600px;
-    }
-
-}
-/* Transaction Action Buttons */
+/* ================================
+   TRANSACTION ACTION BUTTONS
+   ================================ */
 
 .transaction-actions {
     white-space: nowrap;
@@ -323,6 +458,12 @@ body:has(.dashboard-cards) .container {
 .delete-button:hover {
     background-color: #b91c1c;
 }
+
+
+/* ================================
+   NAVIGATION COLORS
+   ================================ */
+
 .nav-transactions {
     color: #2563eb !important;
 }
@@ -333,4 +474,104 @@ body:has(.dashboard-cards) .container {
 
 .nav-logout {
     color: #dc2626 !important;
+}
+
+
+/* ================================
+   DASHBOARD TABLE WRAPPER
+   ================================ */
+
+.dashboard-section .table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+
+/* ================================
+   SMALLER SCREENS
+   ================================ */
+
+@media (max-width: 700px) {
+
+    body:has(.dashboard-cards) .container {
+        width: calc(100% - 30px);
+        padding: 30px 20px;
+    }
+
+    .dashboard-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-section .transaction-table {
+        min-width: 600px;
+    }
+
+    .budget-table {
+        min-width: 800px;
+    }
+
+    .budget-table th,
+    .budget-table td {
+        padding: 12px 14px;
+    }
+}
+/* =========================================
+   FINAL FIX - BUDGET OVERVIEW TABLE
+   ========================================= */
+
+/* The budget table has 6 columns */
+.dashboard-section table:has(th:nth-child(6)) {
+    width: 100%;
+    min-width: 850px;
+    table-layout: auto !important;
+}
+
+/* All cells in the 6-column budget table */
+.dashboard-section table:has(th:nth-child(6)) th,
+.dashboard-section table:has(th:nth-child(6)) td {
+    padding: 14px 16px;
+    vertical-align: middle;
+    white-space: nowrap;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+}
+
+/* Category */
+.dashboard-section table:has(th:nth-child(6)) th:nth-child(1),
+.dashboard-section table:has(th:nth-child(6)) td:nth-child(1) {
+    min-width: 120px;
+}
+
+/* Monthly Budget */
+.dashboard-section table:has(th:nth-child(6)) th:nth-child(2),
+.dashboard-section table:has(th:nth-child(6)) td:nth-child(2) {
+    min-width: 145px;
+}
+
+/* Spent */
+.dashboard-section table:has(th:nth-child(6)) th:nth-child(3),
+.dashboard-section table:has(th:nth-child(6)) td:nth-child(3) {
+    min-width: 130px;
+}
+
+/* Remaining */
+.dashboard-section table:has(th:nth-child(6)) th:nth-child(4),
+.dashboard-section table:has(th:nth-child(6)) td:nth-child(4) {
+    min-width: 140px;
+}
+
+/* Used */
+.dashboard-section table:has(th:nth-child(6)) th:nth-child(5),
+.dashboard-section table:has(th:nth-child(6)) td:nth-child(5) {
+    min-width: 100px;
+}
+
+/* STATUS - IMPORTANT */
+.dashboard-section table:has(th:nth-child(6)) th:nth-child(6),
+.dashboard-section table:has(th:nth-child(6)) td:nth-child(6) {
+    min-width: 180px !important;
+    width: 180px !important;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    overflow-wrap: normal !important;
 }

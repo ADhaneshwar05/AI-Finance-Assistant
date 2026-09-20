@@ -39,7 +39,9 @@
         </div>
 
     </div>
-     <!-- Predicted Monthly Spending -->
+
+
+    <!-- Predicted Monthly Spending -->
 
     <div class="dashboard-section">
 
@@ -54,73 +56,135 @@
     </div>
 
 
-   <!-- Budget Overview -->
+    <!-- Budget Overview -->
 
-<div class="dashboard-section">
+    <div class="dashboard-section">
 
-    <h2>Budget Overview</h2>
+        <h2>Budget Overview</h2>
 
-    {% if budget_overview %}
+        {% if budget_overview %}
 
-    <div class="table-wrapper">
+        <div class="table-wrapper">
 
-        <table class="transaction-table">
+            <table class="transaction-table">
 
-            <thead>
-                <tr>
-                    <th>Category</th>
-                    <th>Monthly Budget</th>
-                    <th>Spent</th>
-                    <th>Remaining</th>
-                    <th>Used</th>
-                </tr>
-            </thead>
+                <thead>
 
-            <tbody>
+                    <tr>
+                        <th>Category</th>
+                        <th>Monthly Budget</th>
+                        <th>Spent</th>
+                        <th>Remaining</th>
+                        <th>Used</th>
+                        <th>Status</th>
+                    </tr>
 
-                {% for budget in budget_overview %}
+                </thead>
 
-                <tr>
+                <tbody>
 
-                    <td>
-                        {{ budget.category }}
-                    </td>
+                    {% for budget in budget_overview %}
 
-                    <td>
-                        ₹{{ "%.2f"|format(budget.budget) }}
-                    </td>
+                    <tr>
 
-                    <td>
-                        ₹{{ "%.2f"|format(budget.spent) }}
-                    </td>
+                        <td>
+                            {{ budget.category }}
+                        </td>
 
-                    <td>
-                        ₹{{ "%.2f"|format(budget.remaining) }}
-                    </td>
+                        <td>
+                            ₹{{ "%.2f"|format(budget.budget) }}
+                        </td>
 
-                    <td>
-                        {{ "%.1f"|format(budget.percentage) }}%
-                    </td>
+                        <td>
+                            ₹{{ "%.2f"|format(budget.spent) }}
+                        </td>
 
-                </tr>
+                        <td>
+                            ₹{{ "%.2f"|format(budget.remaining) }}
+                        </td>
 
-                {% endfor %}
+                        <td>
+                            {{ "%.1f"|format(budget.percentage) }}%
+                        </td>
 
-            </tbody>
+                        <td>
 
-        </table>
+                            {% if budget.percentage >= 100 %}
+
+                                <strong>Budget Exceeded</strong>
+
+                            {% elif budget.percentage >= 80 %}
+
+                                <strong>Approaching Limit</strong>
+
+                            {% else %}
+
+                                Within Budget
+
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        <!-- Budget Warnings -->
+
+        {% for budget in budget_overview %}
+
+            {% if budget.percentage >= 100 %}
+
+                <div class="dashboard-card">
+
+                    <p>
+                        ⚠️ Budget exceeded for
+                        <strong>{{ budget.category }}</strong>.
+                        You have spent
+                        <strong>₹{{ "%.2f"|format(budget.spent) }}</strong>
+                        against a budget of
+                        <strong>₹{{ "%.2f"|format(budget.budget) }}</strong>.
+                    </p>
+
+                </div>
+
+            {% elif budget.percentage >= 80 %}
+
+                <div class="dashboard-card">
+
+                    <p>
+                        ⚠️ Budget approaching limit for
+                        <strong>{{ budget.category }}</strong>.
+                        You have used
+                        <strong>{{ "%.1f"|format(budget.percentage) }}%</strong>
+                        of your budget.
+                    </p>
+
+                </div>
+
+            {% endif %}
+
+        {% endfor %}
+
+
+        {% else %}
+
+            <p>No budgets set yet.</p>
+
+        {% endif %}
 
     </div>
 
-    {% else %}
-
-        <p>No budgets set yet.</p>
-
-    {% endif %}
-
-</div>
 
     <!-- Category Spending -->
+
     <div class="dashboard-section">
 
         <h2>Spending by Category</h2>
@@ -132,10 +196,12 @@
             <table class="transaction-table">
 
                 <thead>
+
                     <tr>
                         <th>Category</th>
                         <th>Total Spent</th>
                     </tr>
+
                 </thead>
 
                 <tbody>
@@ -143,8 +209,15 @@
                     {% for category, amount in category_spending.items() %}
 
                     <tr>
-                        <td>{{ category }}</td>
-                        <td>₹{{ "%.2f"|format(amount) }}</td>
+
+                        <td>
+                            {{ category }}
+                        </td>
+
+                        <td>
+                            ₹{{ "%.2f"|format(amount) }}
+                        </td>
+
                     </tr>
 
                     {% endfor %}
@@ -162,9 +235,9 @@
         {% endif %}
 
     </div>
-        
 
-        <!-- Financial Insights -->
+
+    <!-- Financial Insights -->
 
     <div class="dashboard-section">
 
@@ -173,9 +246,13 @@
         {% if financial_insights %}
 
             <ul>
+
                 {% for insight in financial_insights %}
+
                     <li>{{ insight }}</li>
+
                 {% endfor %}
+
             </ul>
 
         {% else %}
@@ -185,7 +262,168 @@
         {% endif %}
 
     </div>
-        
+
+
+    <!-- Spending Chart -->
+
+    <div class="dashboard-section">
+
+        <h2>Spending by Category Chart</h2>
+
+        <canvas id="spendingChart"></canvas>
+
+    </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+
+        const categoryLabels = [
+
+            {% for category, amount in category_spending.items() %}
+
+                "{{ category }}",
+
+            {% endfor %}
+
+        ];
+
+
+        const categoryAmounts = [
+
+            {% for category, amount in category_spending.items() %}
+
+                {{ amount }},
+
+            {% endfor %}
+
+        ];
+
+
+        const ctx = document.getElementById("spendingChart");
+
+
+        new Chart(ctx, {
+
+            type: "bar",
+
+            data: {
+
+                labels: categoryLabels,
+
+                datasets: [{
+
+                    label: "Amount Spent (₹)",
+
+                    data: categoryAmounts
+
+                }]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                scales: {
+
+                    y: {
+
+                        beginAtZero: true
+
+                    }
+
+                }
+
+            }
+
+        });
+
+    </script>
+        <!-- Monthly Spending Trend -->
+
+    <div class="dashboard-section">
+
+        <h2>Monthly Spending Trend</h2>
+
+        <canvas id="monthlySpendingChart"></canvas>
+
+    </div>
+
+
+    <script>
+
+        const monthlyLabels = [
+
+            {% for month, amount in monthly_spending.items() %}
+
+                "{{ month }}",
+
+            {% endfor %}
+
+        ];
+
+
+        const monthlyAmounts = [
+
+            {% for month, amount in monthly_spending.items() %}
+
+                {{ amount }},
+
+            {% endfor %}
+
+        ];
+
+
+        const monthlyCtx =
+            document.getElementById("monthlySpendingChart");
+
+
+        new Chart(monthlyCtx, {
+
+            type: "line",
+
+            data: {
+
+                labels: monthlyLabels,
+
+                datasets: [{
+
+                    label: "Monthly Spending (₹)",
+
+                    data: monthlyAmounts,
+
+                    tension: 0.3,
+
+                    fill: false
+
+                }]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                scales: {
+
+                    y: {
+
+                        beginAtZero: true
+
+                    }
+
+                }
+
+            }
+
+        });
+
+    </script>
+
+
+
     <!-- Recent Transactions -->
 
     <div class="dashboard-section">
@@ -199,6 +437,7 @@
             <table class="transaction-table">
 
                 <thead>
+
                     <tr>
                         <th>Type</th>
                         <th>Amount</th>
@@ -206,6 +445,7 @@
                         <th>Description</th>
                         <th>Date</th>
                     </tr>
+
                 </thead>
 
                 <tbody>
@@ -255,21 +495,24 @@
 
     <!-- Navigation -->
 
-<div class="dashboard-navigation">
+    <div class="dashboard-navigation">
 
-    <a class="nav-transactions" href="{{ url_for('main.transactions') }}">
-        Manage Transactions
-    </a>
+        <a class="nav-transactions"
+           href="{{ url_for('main.transactions') }}">
+            Manage Transactions
+        </a>
 
-    <a class="nav-budgets" href="{{ url_for('main.budgets') }}">
-        Manage Budgets
-    </a>
+        <a class="nav-budgets"
+           href="{{ url_for('main.budgets') }}">
+            Manage Budgets
+        </a>
 
-    <a class="nav-logout" href="{{ url_for('main.logout') }}">
-        Logout
-    </a>
+        <a class="nav-logout"
+           href="{{ url_for('main.logout') }}">
+            Logout
+        </a>
 
-</div>
+    </div>
 
 </div>
 

@@ -1,30 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
     <title>Transactions - AI Finance Assistant</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+
 </head>
+
 
 <body>
 
+
 <div class="container">
 
+
     <h1>Transactions</h1>
+
     <p>Add and manage your income and expenses.</p>
 
-    <!-- Add Transaction Form -->
-    <form method="POST" action="/transactions">
 
-        <label for="type">Transaction Type</label>
-        <select id="type" name="type" required>
-            <option value="">Select type</option>
-            <option value="income">Income</option>
-            <option value="expense">Expense</option>
+    <!-- ==================================================
+         BUDGET WARNINGS / MESSAGES
+         ================================================== -->
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+
+        {% if messages %}
+
+            <div class="flash-messages">
+
+                {% for category, message in messages %}
+
+                    <div class="flash-message {{ category }}">
+                        {{ message }}
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        {% endif %}
+
+    {% endwith %}
+
+
+
+    <!-- ==================================================
+         ADD TRANSACTION FORM
+         ================================================== -->
+
+    <form method="POST"
+          action="{{ url_for('main.transactions') }}">
+
+
+        <label for="type">
+            Transaction Type
+        </label>
+
+
+        <select id="type"
+                name="type"
+                required>
+
+            <option value="">
+                Select type
+            </option>
+
+            <option value="income">
+                Income
+            </option>
+
+            <option value="expense">
+                Expense
+            </option>
+
         </select>
 
-        <label for="amount">Amount</label>
+
+
+        <label for="amount">
+            Amount
+        </label>
+
+
         <input
             type="number"
             id="amount"
@@ -35,7 +101,13 @@
             required
         >
 
-        <label for="category">Category</label>
+
+
+        <label for="category">
+            Category
+        </label>
+
+
         <input
             type="text"
             id="category"
@@ -44,15 +116,28 @@
             required
         >
 
-        <label for="description">Description</label>
+
+
+        <label for="description">
+            Description
+        </label>
+
+
         <input
             type="text"
             id="description"
             name="description"
             placeholder="Enter description"
+            required
         >
 
-        <label for="date">Date</label>
+
+
+        <label for="date">
+            Date
+        </label>
+
+
         <input
             type="date"
             id="date"
@@ -60,103 +145,237 @@
             required
         >
 
-        <button type="submit">Add Transaction</button>
+
+
+        <button type="submit">
+            Add Transaction
+        </button>
+
 
     </form>
 
 
-    <!-- Transaction History -->
+
+    <!-- ==================================================
+         TRANSACTION HISTORY
+         ================================================== -->
+
     <div class="transaction-history">
 
-        <h2>Transaction History</h2>
+
+        <h2>
+            Transaction History
+        </h2>
+
+
+
+        <!-- Search / Filter -->
+
+        <form
+            method="GET"
+            action="{{ url_for('main.transactions') }}"
+            class="search-form"
+        >
+
+
+            <input
+                type="text"
+                name="search"
+                placeholder="Search by description or category"
+                value="{{ search }}"
+            >
+
+
+            <button type="submit">
+                Search
+            </button>
+
+
+            {% if search %}
+
+                <a href="{{ url_for('main.transactions') }}">
+                    Clear
+                </a>
+
+            {% endif %}
+
+
+        </form>
+
+
 
         {% if transactions %}
 
-        <div class="table-wrapper">
 
-            <table class="transaction-table">
+            <div class="table-wrapper">
 
-                <thead>
-                    <tr>
-                        <th>Type</th>
-                        <th>Amount</th>
-                        <th>Category</th>
-                        <th>Description</th>
-                        <th>Date</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
 
-                <tbody>
+                <table class="transaction-table">
 
-                    {% for transaction in transactions %}
 
-                    <tr class="transaction-{{ transaction.type }}">
+                    <thead>
 
-                        <td>
-                            <span class="transaction-type">
-                                {{ transaction.type | title }}
-                            </span>
-                        </td>
+                        <tr>
 
-                        <td class="transaction-amount">
-                            ₹{{ "%.2f"|format(transaction.amount) }}
-                        </td>
+                            <th>
+                                Type
+                            </th>
 
-                        <td>
-                            {{ transaction.category }}
-                        </td>
+                            <th>
+                                Amount
+                            </th>
 
-                        <td>
-                            {{ transaction.description or "-" }}
-                        </td>
+                            <th>
+                                Category
+                            </th>
 
-                        <td>
-                            {{ transaction.date }}
-                        </td>
+                            <th>
+                                Description
+                            </th>
 
-                       <td class="transaction-actions">
+                            <th>
+                                Date
+                            </th>
 
-                            <a
-                                href="{{ url_for('main.edit_transaction', transaction_id=transaction._id) }}"
-                                class="edit-button"
+                            <th>
+                                Action
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+
+                    <tbody>
+
+
+                        {% for transaction in transactions %}
+
+
+                            <tr
+                                class="transaction-{{ transaction.type }}"
                             >
-                                ✏ Edit
-                            </a>
 
-                            <form
-                                method="POST"
-                                action="{{ url_for('main.delete_transaction', transaction_id=transaction._id) }}"
-                            >
-                                <button
-                                    type="submit"
-                                    class="delete-button"
+
+                                <td>
+
+                                    <span
+                                        class="transaction-type"
+                                    >
+                                        {{ transaction.type | title }}
+                                    </span>
+
+                                </td>
+
+
+
+                                <td
+                                    class="transaction-amount"
                                 >
-                                    🗑 Delete
-                                </button>
-                            </form>
 
-                        </td>
+                                    ₹{{ "%.2f"|format(transaction.amount) }}
 
-                    </tr>
+                                </td>
 
-                    {% endfor %}
 
-                </tbody>
 
-            </table>
+                                <td>
 
-        </div>
+                                    {{ transaction.category }}
+
+                                </td>
+
+
+
+                                <td>
+
+                                    {{ transaction.description or "-" }}
+
+                                </td>
+
+
+
+                                <td>
+
+                                    {{ transaction.date }}
+
+                                </td>
+
+
+
+                                <td
+                                    class="transaction-actions"
+                                >
+
+
+                                    <a
+                                        href="{{ url_for(
+                                            'main.edit_transaction',
+                                            transaction_id=transaction._id
+                                        ) }}"
+                                        class="edit-button"
+                                    >
+                                        ✏ Edit
+                                    </a>
+
+
+
+                                    <form
+                                        method="POST"
+                                        action="{{ url_for(
+                                            'main.delete_transaction',
+                                            transaction_id=transaction._id
+                                        ) }}"
+                                    >
+
+
+                                        <button
+                                            type="submit"
+                                            class="delete-button"
+                                        >
+                                            🗑 Delete
+                                        </button>
+
+
+                                    </form>
+
+
+                                </td>
+
+
+                            </tr>
+
+
+                        {% endfor %}
+
+
+                    </tbody>
+
+
+                </table>
+
+
+            </div>
+
 
         {% else %}
 
-            <p class="no-transactions">No transactions yet.</p>
+
+            <p class="no-transactions">
+                No transactions yet.
+            </p>
+
 
         {% endif %}
 
+
     </div>
+
 
 </div>
 
+
 </body>
+
 </html>
