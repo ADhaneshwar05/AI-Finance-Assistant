@@ -68,7 +68,6 @@
             Transaction Type
         </label>
 
-
         <select id="type"
                 name="type"
                 required>
@@ -95,7 +94,6 @@
             Amount
         </label>
 
-
         <input
             type="number"
             id="amount"
@@ -113,7 +111,6 @@
         <label for="category">
             Category
         </label>
-
 
         <input
             type="text"
@@ -161,7 +158,6 @@
             Description
         </label>
 
-
         <input
             type="text"
             id="description"
@@ -177,7 +173,6 @@
         <label for="date">
             Date
         </label>
-
 
         <input
             type="date"
@@ -220,7 +215,6 @@
             class="search-form"
         >
 
-
             <input
                 type="text"
                 name="search"
@@ -228,11 +222,9 @@
                 value="{{ search }}"
             >
 
-
             <button type="submit">
                 Search
             </button>
-
 
             {% if search %}
 
@@ -242,7 +234,6 @@
 
             {% endif %}
 
-
         </form>
 
 
@@ -251,12 +242,9 @@
 
         {% if transactions %}
 
-
             <div class="table-wrapper">
 
-
                 <table class="transaction-table">
-
 
                     <thead>
 
@@ -294,9 +282,7 @@
 
                     <tbody>
 
-
                         {% for transaction in transactions %}
-
 
                             <tr
                                 class="transaction-{{ transaction.type }}"
@@ -368,14 +354,12 @@
                                         ) }}"
                                     >
 
-
                                         <button
                                             type="submit"
                                             class="delete-button"
                                         >
                                             🗑 Delete
                                         </button>
-
 
                                     </form>
 
@@ -388,23 +372,18 @@
 
                         {% endfor %}
 
-
                     </tbody>
 
-
                 </table>
-
 
             </div>
 
 
         {% else %}
 
-
             <p class="no-transactions">
                 No transactions yet.
             </p>
-
 
         {% endif %}
 
@@ -422,16 +401,21 @@
 
 <script>
 
-    const typeInput = document.getElementById("type");
+    const typeInput =
+        document.getElementById("type");
+
 
     const descriptionInput =
         document.getElementById("description");
 
+
     const categoryInput =
         document.getElementById("category");
 
+
     const predictionBox =
         document.getElementById("prediction-box");
+
 
     const predictedCategory =
         document.getElementById("predicted-category");
@@ -444,6 +428,7 @@
 
         const transactionType =
             typeInput.value;
+
 
         const description =
             descriptionInput.value.trim();
@@ -510,16 +495,20 @@
                 predictedCategory.textContent =
                     data.predicted_category;
 
+
                 predictionBox.style.display =
                     "block";
 
 
                 /*
-                 * Only automatically fill the
-                 * category if it is currently empty.
+                 * Automatically fill the category
+                 * only when the category is empty.
                  *
-                 * This allows the user to correct
-                 * the prediction manually.
+                 * This means:
+                 *
+                 * ML prediction → initially fills category
+                 *
+                 * User can then manually change it.
                  */
 
                 if (
@@ -528,6 +517,7 @@
 
                     categoryInput.value =
                         data.predicted_category;
+
                 }
 
             }
@@ -541,6 +531,7 @@
 
             predictionBox.style.display =
                 "none";
+
         }
 
     }

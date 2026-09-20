@@ -786,6 +786,19 @@ def dashboard():
         )
     )
 
+    monthly_spending = {}
+
+    for transaction in user_transactions:
+
+        if transaction.get("type") == "expense":
+
+            month = transaction.get("date", "")[:7]
+
+            monthly_spending[month] = (
+                monthly_spending.get(month, 0) +
+                float(transaction.get("amount", 0))
+            )
+
     # ========================================================
     # USER BUDGETS
     # ========================================================
@@ -1037,6 +1050,8 @@ def dashboard():
         budget_overview=budget_overview,
 
         category_spending=category_spending,
+
+        monthly_spending=monthly_spending,
 
         predicted_spending=predicted_spending,
 
