@@ -52,7 +52,10 @@ def register():
         email = request.form.get("email")
         password = request.form.get("password")
 
-        # Basic validation
+        # ----------------------------------------------------
+        # Validation
+        # ----------------------------------------------------
+
         if not name or not name.strip():
             return "Name is required"
 
@@ -62,7 +65,13 @@ def register():
         if not password:
             return "Password is required"
 
-        # Check whether email already exists
+        name = name.strip()
+        email = email.strip().lower()
+
+        # ----------------------------------------------------
+        # Check duplicate email
+        # ----------------------------------------------------
+
         existing_user = users_collection.find_one({
             "email": email
         })
@@ -70,15 +79,21 @@ def register():
         if existing_user:
             return "Email already registered"
 
+        # ----------------------------------------------------
+        # Create user
+        # ----------------------------------------------------
+
         user_data = {
-            "name": name.strip(),
-            "email": email.strip(),
+            "name": name,
+            "email": email,
             "password": generate_password_hash(password)
         }
 
         users_collection.insert_one(user_data)
 
-        return redirect(url_for("main.login"))
+        return redirect(
+            url_for("main.login")
+        )
 
     return render_template("register.html")
 
@@ -95,6 +110,14 @@ def login():
         email = request.form.get("email")
         password = request.form.get("password")
 
+        if not email or not email.strip():
+            return "Email is required"
+
+        if not password:
+            return "Password is required"
+
+        email = email.strip().lower()
+
         user = users_collection.find_one({
             "email": email
         })
@@ -104,10 +127,15 @@ def login():
             password
         ):
 
-            session["user_id"] = str(user["_id"])
+            session["user_id"] = str(
+                user["_id"]
+            )
+
             session["user_name"] = user["name"]
 
-            return redirect(url_for("main.home"))
+            return redirect(
+                url_for("main.home")
+            )
 
         return "Invalid email or password"
 
@@ -118,12 +146,22 @@ def login():
 # TRANSACTIONS
 # ============================================================
 
-@main_bp.route("/transactions", methods=["GET", "POST"])
+@main_bp.route(
+    "/transactions",
+    methods=["GET", "POST"]
+)
 def transactions():
 
     # User must be logged in
     if "user_id" not in session:
-        return redirect(url_for("main.login"))
+
+        return redirect(
+            url_for("main.login")
+        )
+
+    # ========================================================
+    # ADD TRANSACTION
+    # ========================================================
 
     if request.method == "POST":
 
@@ -163,21 +201,56 @@ def transactions():
         # Validate transaction type
         # ----------------------------------------------------
 
-        if transaction_type not in ["income", "expense"]:
+        if transaction_type not in [
+            "income",
+            "expense"
+        ]:
 
             return "Invalid transaction type"
 
         # ----------------------------------------------------
-        # Automatically categorize expenses
+        # Validate date
         # ----------------------------------------------------
+
+        if not date or not date.strip():
+
+            return "Date is required"
+
+        # ----------------------------------------------------
+        # ML prediction for expenses
+        # ----------------------------------------------------
+
+        predicted_category = None
 
         if transaction_type == "expense":
 
-            category = categorize_expense(description)
+            predicted_category = categorize_expense(description)
 
-        # ----------------------------------------------------
-        # Create transaction
-        # ----------------------------------------------------
+            # Preserve a manually selected category.
+            if not category or not category.strip():
+
+                category = predicted_category
+
+            else:
+
+                category = category.strip()
+
+        else:
+
+            # Income transactions do not require
+            # ML expense prediction.
+
+            if not category or not category.strip():
+
+                category = "Other"
+
+            else:
+
+                category = category.strip()
+
+        # ====================================================
+        # CREATE TRANSACTION
+        # ====================================================
 
         transaction_data = {
 
@@ -188,6 +261,8 @@ def transactions():
             "amount": amount_value,
 
             "category": category,
+
+            "predicted_category": predicted_category,
 
             "description": description,
 
@@ -204,9 +279,10 @@ def transactions():
 
         if transaction_type == "expense":
 
-            # Find budget for the transaction category
             user_budgets = budgets_collection.find({
+
                 "user_id": session["user_id"]
+
             })
 
             for budget in user_budgets:
@@ -219,7 +295,10 @@ def transactions():
                     category
                 ).strip().lower()
 
-                # Check matching category
+                # ------------------------------------------------
+                # Matching budget category
+                # ------------------------------------------------
+
                 if budget_category == transaction_category:
 
                     budget_amount = float(
@@ -229,19 +308,36 @@ def transactions():
                     if budget_amount <= 0:
                         continue
 
-                    # Calculate total spending for this category
-                    category_transactions = transactions_collection.find({
-                        "user_id": session["user_id"],
-                        "type": "expense",
-                        "category": category
-                    })
+                    # ------------------------------------------------
+                    # Calculate total category spending
+                    # ------------------------------------------------
 
-                    category_spending = sum(
-                        float(transaction.get("amount", 0))
-                        for transaction in category_transactions
+                    category_transactions = (
+                        transactions_collection.find({
+
+                            "user_id": session["user_id"],
+
+                            "type": "expense",
+
+                            "category": category
+
+                        })
                     )
 
-                    # Calculate percentage used
+                    category_spending = sum(
+
+                        float(
+                            transaction.get(
+                                "amount",
+                                0
+                            )
+                        )
+
+                        for transaction
+                        in category_transactions
+
+                    )
+
                     percentage = (
                         category_spending /
                         budget_amount
@@ -254,22 +350,34 @@ def transactions():
                     if percentage >= 100:
 
                         flash(
-                            f"Budget exceeded for {category}. "
-                            f"You have spent ₹{category_spending:.2f} "
-                            f"against a budget of ₹{budget_amount:.2f}.",
+
+                            f"Budget exceeded for "
+                            f"{category}. "
+
+                            f"You have spent "
+                            f"₹{category_spending:.2f} "
+
+                            f"against a budget of "
+                            f"₹{budget_amount:.2f}.",
+
                             "danger"
                         )
 
                     # ------------------------------------------------
-                    # Budget approaching limit
+                    # Budget approaching
                     # ------------------------------------------------
 
                     elif percentage >= 80:
 
                         flash(
-                            f"Budget approaching limit for {category}. "
-                            f"You have used {percentage:.1f}% "
+
+                            f"Budget approaching limit "
+                            f"for {category}. "
+
+                            f"You have used "
+                            f"{percentage:.1f}% "
                             f"of your budget.",
+
                             "warning"
                         )
 
@@ -289,7 +397,9 @@ def transactions():
     ).strip()
 
     query = {
+
         "user_id": session["user_id"]
+
     }
 
     if search:
@@ -309,21 +419,31 @@ def transactions():
                     "$options": "i"
                 }
             }
+
         ]
 
-    user_transactions = transactions_collection.find(
-        query
-    ).sort("date", -1)
+    user_transactions = (
+        transactions_collection.find(
+            query
+        ).sort(
+            "date",
+            -1
+        )
+    )
 
     return render_template(
+
         "transactions.html",
+
         transactions=user_transactions,
+
         search=search
+
     )
 
 
 # ============================================================
-# DELETE TRANSACTION
+# DELETE TRANSACTION - WEB
 # ============================================================
 
 @main_bp.route(
@@ -338,9 +458,19 @@ def delete_transaction(transaction_id):
             url_for("main.login")
         )
 
+    try:
+
+        object_id = ObjectId(
+            transaction_id
+        )
+
+    except Exception:
+
+        return "Invalid transaction ID"
+
     transactions_collection.delete_one({
 
-        "_id": ObjectId(transaction_id),
+        "_id": object_id,
 
         "user_id": session["user_id"]
 
@@ -352,7 +482,7 @@ def delete_transaction(transaction_id):
 
 
 # ============================================================
-# EDIT TRANSACTION
+# EDIT TRANSACTION - WEB
 # ============================================================
 
 @main_bp.route(
@@ -367,9 +497,19 @@ def edit_transaction(transaction_id):
             url_for("main.login")
         )
 
+    try:
+
+        object_id = ObjectId(
+            transaction_id
+        )
+
+    except Exception:
+
+        return "Invalid transaction ID"
+
     transaction = transactions_collection.find_one({
 
-        "_id": ObjectId(transaction_id),
+        "_id": object_id,
 
         "user_id": session["user_id"]
 
@@ -414,22 +554,54 @@ def edit_transaction(transaction_id):
         description = description.strip()
 
         # ----------------------------------------------------
-        # Validate transaction type
+        # Validate type
         # ----------------------------------------------------
 
-        if transaction_type not in ["income", "expense"]:
+        if transaction_type not in [
+            "income",
+            "expense"
+        ]:
 
             return "Invalid transaction type"
 
         # ----------------------------------------------------
-        # Re-categorize edited expense
+        # Validate date
         # ----------------------------------------------------
+
+        if not date or not date.strip():
+
+            return "Date is required"
+
+        # ----------------------------------------------------
+        # Re-predict expense category
+        # ----------------------------------------------------
+
+        predicted_category = None
 
         if transaction_type == "expense":
 
-            category = categorize_expense(
+            predicted_category = categorize_expense(
                 description
             )
+
+            # Preserve user's correction
+            if category and category.strip():
+
+                category = category.strip()
+
+            else:
+
+                category = predicted_category
+
+        else:
+
+            if not category or not category.strip():
+
+                category = "Other"
+
+            else:
+
+                category = category.strip()
 
         # ----------------------------------------------------
         # Update transaction
@@ -438,7 +610,7 @@ def edit_transaction(transaction_id):
         transactions_collection.update_one(
 
             {
-                "_id": ObjectId(transaction_id),
+                "_id": object_id,
 
                 "user_id": session["user_id"]
             },
@@ -452,11 +624,15 @@ def edit_transaction(transaction_id):
 
                     "category": category,
 
+                    "predicted_category":
+                        predicted_category,
+
                     "description": description,
 
                     "date": date
                 }
             }
+
         )
 
         return redirect(
@@ -464,8 +640,11 @@ def edit_transaction(transaction_id):
         )
 
     return render_template(
+
         "edit_transaction.html",
+
         transaction=transaction
+
     )
 
 
@@ -495,31 +674,50 @@ def budgets():
             "amount"
         )
 
+        # ----------------------------------------------------
         # Validate category
+        # ----------------------------------------------------
+
         if not category or not category.strip():
 
             return "Category is required"
 
+        category = category.strip()
+
+        # ----------------------------------------------------
         # Validate amount
+        # ----------------------------------------------------
+
         try:
 
             amount_value = float(amount)
 
         except (TypeError, ValueError):
 
-            return "Budget amount must be a valid number"
+            return (
+                "Budget amount must be "
+                "a valid number"
+            )
 
         if amount_value <= 0:
 
-            return "Budget amount must be greater than 0"
+            return (
+                "Budget amount must be "
+                "greater than 0"
+            )
+
+        # ----------------------------------------------------
+        # Create budget
+        # ----------------------------------------------------
 
         budget_data = {
 
             "user_id": session["user_id"],
 
-            "category": category.strip(),
+            "category": category,
 
             "amount": amount_value
+
         }
 
         budgets_collection.insert_one(
@@ -530,15 +728,22 @@ def budgets():
             url_for("main.budgets")
         )
 
-    budgets = list(
+    budgets_data = list(
+
         budgets_collection.find({
+
             "user_id": session["user_id"]
+
         })
+
     )
 
     return render_template(
+
         "budgets.html",
-        budgets=budgets
+
+        budgets=budgets_data
+
     )
 
 
@@ -549,7 +754,6 @@ def budgets():
 @main_bp.route("/dashboard")
 def dashboard():
 
-    # User must be logged in
     if "user_id" not in session:
 
         return redirect(
@@ -558,71 +762,107 @@ def dashboard():
 
     user_id = session["user_id"]
 
-    # --------------------------------------------------------
-    # Get user's transactions
-    # --------------------------------------------------------
+    # ========================================================
+    # USER TRANSACTIONS
+    # ========================================================
 
     user_transactions = list(
+
         transactions_collection.find({
+
             "user_id": user_id
+
         })
+
     )
 
-    # --------------------------------------------------------
-    # Predict monthly spending
-    # --------------------------------------------------------
+    # ========================================================
+    # PREDICT MONTHLY SPENDING
+    # ========================================================
 
-    predicted_spending = predict_monthly_spending(
-        user_transactions
+    predicted_spending = (
+        predict_monthly_spending(
+            user_transactions
+        )
     )
 
-    # --------------------------------------------------------
-    # Get user's budgets
-    # --------------------------------------------------------
+    # ========================================================
+    # USER BUDGETS
+    # ========================================================
 
     user_budgets = list(
+
         budgets_collection.find({
+
             "user_id": user_id
+
         })
+
     )
 
-    # --------------------------------------------------------
-    # Generate financial insights
-    # --------------------------------------------------------
+    # ========================================================
+    # FINANCIAL INSIGHTS
+    # ========================================================
 
-    financial_insights = generate_financial_insights(
-        user_transactions,
-        user_budgets
+    financial_insights = (
+        generate_financial_insights(
+
+            user_transactions,
+
+            user_budgets
+
+        )
     )
 
-    # --------------------------------------------------------
-    # Calculate budget overview
-    # --------------------------------------------------------
+    # ========================================================
+    # BUDGET OVERVIEW
+    # ========================================================
 
     budget_overview = []
 
     for budget in user_budgets:
 
-        category = budget["category"]
+        category = budget.get(
+            "category",
+            "Other"
+        )
 
         budget_amount = float(
-            budget["amount"]
+            budget.get(
+                "amount",
+                0
+            )
         )
 
         spent = sum(
 
-            float(transaction["amount"])
+            float(
+                transaction.get(
+                    "amount",
+                    0
+                )
+            )
 
-            for transaction in user_transactions
+            for transaction
+            in user_transactions
 
-            if transaction["type"] == "expense"
+            if transaction.get(
+                "type"
+            ) == "expense"
 
-            and transaction["category"].lower()
-            == category.lower()
+            and str(
+                transaction.get(
+                    "category",
+                    ""
+                )
+            ).lower()
+            == str(category).lower()
+
         )
 
         remaining = (
-            budget_amount - spent
+            budget_amount -
+            spent
         )
 
         if budget_amount > 0:
@@ -637,7 +877,7 @@ def dashboard():
             percentage = 0
 
         # ----------------------------------------------------
-        # Budget status
+        # Status
         # ----------------------------------------------------
 
         if percentage >= 100:
@@ -665,113 +905,122 @@ def dashboard():
             "percentage": percentage,
 
             "status": status
+
         })
 
-    # --------------------------------------------------------
-    # Calculate spending by category
-    # --------------------------------------------------------
+    # ========================================================
+    # SPENDING BY CATEGORY
+    # ========================================================
 
     category_spending = {}
 
     for transaction in user_transactions:
 
-        if transaction["type"] == "expense":
+        if transaction.get(
+            "type"
+        ) == "expense":
 
-            category = transaction["category"]
+            category = transaction.get(
+                "category",
+                "Other"
+            )
 
             amount = float(
-                transaction["amount"]
+                transaction.get(
+                    "amount",
+                    0
+                )
             )
 
             if category in category_spending:
 
-                category_spending[category] += amount
+                category_spending[
+                    category
+                ] += amount
 
             else:
 
-                category_spending[category] = amount
-        # --------------------------------------------------------
-    # Calculate monthly spending
-    # --------------------------------------------------------
+                category_spending[
+                    category
+                ] = amount
 
-    monthly_spending = {}
-
-    for transaction in user_transactions:
-
-        if transaction["type"] == "expense":
-
-            transaction_date = str(
-                transaction.get("date", "")
-            )
-
-            month_key = transaction_date[:7]
-
-            if len(month_key) == 7:
-
-                amount = float(
-                    transaction["amount"]
-                )
-
-                if month_key in monthly_spending:
-
-                    monthly_spending[month_key] += amount
-
-                else:
-
-                    monthly_spending[month_key] = amount
-    # --------------------------------------------------------
-    # Calculate total income
-    # --------------------------------------------------------
+    # ========================================================
+    # TOTAL INCOME
+    # ========================================================
 
     total_income = sum(
 
-        float(transaction["amount"])
+        float(
+            transaction.get(
+                "amount",
+                0
+            )
+        )
 
-        for transaction in user_transactions
+        for transaction
+        in user_transactions
 
-        if transaction["type"] == "income"
+        if transaction.get(
+            "type"
+        ) == "income"
+
     )
 
-    # --------------------------------------------------------
-    # Calculate total expenses
-    # --------------------------------------------------------
+    # ========================================================
+    # TOTAL EXPENSES
+    # ========================================================
 
     total_expenses = sum(
 
-        float(transaction["amount"])
+        float(
+            transaction.get(
+                "amount",
+                0
+            )
+        )
 
-        for transaction in user_transactions
+        for transaction
+        in user_transactions
 
-        if transaction["type"] == "expense"
+        if transaction.get(
+            "type"
+        ) == "expense"
+
     )
 
-    # --------------------------------------------------------
-    # Calculate balance
-    # --------------------------------------------------------
+    # ========================================================
+    # BALANCE
+    # ========================================================
 
     balance = (
         total_income -
         total_expenses
     )
 
-    # --------------------------------------------------------
-    # Recent transactions
-    # --------------------------------------------------------
+    # ========================================================
+    # RECENT TRANSACTIONS
+    # ========================================================
 
     recent_transactions = list(
 
         transactions_collection.find({
+
             "user_id": user_id
+
         })
 
-        .sort("_id", -1)
+        .sort(
+            "_id",
+            -1
+        )
 
         .limit(5)
+
     )
 
-    # --------------------------------------------------------
-    # Render dashboard
-    # --------------------------------------------------------
+    # ========================================================
+    # DASHBOARD
+    # ========================================================
 
     return render_template(
 
@@ -791,188 +1040,538 @@ def dashboard():
 
         predicted_spending=predicted_spending,
 
-        financial_insights=financial_insights,
+        financial_insights=financial_insights
 
-        monthly_spending=monthly_spending
     )
-    
 
 
 # ============================================================
 # API - GET TRANSACTIONS
 # ============================================================
 
-@main_bp.route("/api/transactions")
+@main_bp.route(
+    "/api/transactions",
+    methods=["GET"]
+)
 def api_transactions():
 
     if "user_id" not in session:
+
         return {
             "error": "User not logged in"
         }, 401
 
     user_transactions = list(
+
         transactions_collection.find(
-            {"user_id": session["user_id"]},
+
+            {
+                "user_id":
+                    session["user_id"]
+            },
+
             {
                 "_id": 0,
                 "user_id": 0
             }
+
         )
+
     )
 
     return {
-        "transactions": user_transactions
-    }
+
+        "transactions":
+            user_transactions
+
+    }, 200
 
 
-@main_bp.route("/predict-category", methods=["POST"])
+# ============================================================
+# API - PREDICT CATEGORY
+# ============================================================
+
+@main_bp.route(
+    "/predict-category",
+    methods=["POST"]
+)
 def predict_category_api():
 
-    data = request.get_json()
+    if "user_id" not in session:
+
+        return {
+            "error": "User not logged in"
+        }, 401
+
+    data = request.get_json(
+        silent=True
+    )
 
     if not data:
+
         return {
-            "error": "JSON data is required"
+            "error":
+                "JSON data is required"
         }, 400
 
-    description = data.get("description")
+    description = data.get(
+        "description"
+    )
 
-    if not description or not description.strip():
+    if (
+        not description
+        or not str(description).strip()
+    ):
+
         return {
-            "error": "Description is required"
+            "error":
+                "Description is required"
         }, 400
 
-    category = categorize_expense(description)
+    description = str(
+        description
+    ).strip()
+
+    category = categorize_expense(
+        description
+    )
 
     return {
-        "description": description,
-        "predicted_category": category
+
+        "description":
+            description,
+
+        "predicted_category":
+            category
+
     }, 200
+
 
 # ============================================================
 # API - UPDATE TRANSACTION
+#
+# Exact SRS endpoint:
+# PUT /transactions/{id}
+#
+# /api/transactions/{id} is also kept for compatibility.
 # ============================================================
 
-@main_bp.route("/transactions/<transaction_id>", methods=["PUT"])
-def api_update_transaction(transaction_id):
+@main_bp.route(
+    "/transactions/<transaction_id>",
+    methods=["PUT"]
+)
+@main_bp.route(
+    "/api/transactions/<transaction_id>",
+    methods=["PUT"]
+)
+def api_update_transaction(
+    transaction_id
+):
 
     if "user_id" not in session:
+
         return {
-            "error": "User not logged in"
+            "error":
+                "User not logged in"
         }, 401
 
-    data = request.get_json()
+    try:
+
+        object_id = ObjectId(
+            transaction_id
+        )
+
+    except Exception:
+
+        return {
+            "error":
+                "Invalid transaction ID"
+        }, 400
+
+    data = request.get_json(
+        silent=True
+    )
 
     if not data:
+
         return {
-            "error": "Request body is required"
+            "error":
+                "Request body is required"
         }, 400
 
-    transaction = transactions_collection.find_one({
-        "_id": ObjectId(transaction_id),
-        "user_id": session["user_id"]
-    })
+    transaction = (
+        transactions_collection.find_one({
+
+            "_id": object_id,
+
+            "user_id":
+                session["user_id"]
+
+        })
+    )
 
     if not transaction:
+
         return {
-            "error": "Transaction not found"
+            "error":
+                "Transaction not found"
         }, 404
 
-    transaction_type = data.get("type", transaction["type"])
-    amount = data.get("amount", transaction["amount"])
-    category = data.get("category", transaction["category"])
+    transaction_type = data.get(
+        "type",
+        transaction.get(
+            "type"
+        )
+    )
+
+    amount = data.get(
+        "amount",
+        transaction.get(
+            "amount"
+        )
+    )
+
+    category = data.get(
+        "category",
+        transaction.get(
+            "category",
+            "Other"
+        )
+    )
+
     description = data.get(
         "description",
-        transaction["description"]
+        transaction.get(
+            "description",
+            ""
+        )
     )
-    date = data.get("date", transaction["date"])
 
-    if amount is None or float(amount) <= 0:
+    date = data.get(
+        "date",
+        transaction.get(
+            "date",
+            ""
+        )
+    )
+
+    # --------------------------------------------------------
+    # Validate type
+    # --------------------------------------------------------
+
+    if transaction_type not in [
+        "income",
+        "expense"
+    ]:
+
         return {
-            "error": "Amount must be greater than 0"
+            "error":
+                "Invalid transaction type"
         }, 400
 
+    # --------------------------------------------------------
+    # Validate amount
+    # --------------------------------------------------------
+
+    try:
+
+        amount_value = float(
+            amount
+        )
+
+    except (
+        TypeError,
+        ValueError
+    ):
+
+        return {
+            "error":
+                "Amount must be a valid number"
+        }, 400
+
+    if amount_value <= 0:
+
+        return {
+            "error":
+                "Amount must be greater than 0"
+        }, 400
+
+    # --------------------------------------------------------
+    # Validate description
+    # --------------------------------------------------------
+
+    if (
+        not description
+        or not str(description).strip()
+    ):
+
+        return {
+            "error":
+                "Description is required"
+        }, 400
+
+    description = str(
+        description
+    ).strip()
+
+    # --------------------------------------------------------
+    # Validate date
+    # --------------------------------------------------------
+
+    if (
+        not date
+        or not str(date).strip()
+    ):
+
+        return {
+            "error":
+                "Date is required"
+        }, 400
+
+    # --------------------------------------------------------
+    # Expense prediction
+    # --------------------------------------------------------
+
+    predicted_category = None
+
+    if transaction_type == "expense":
+
+        predicted_category = (
+            categorize_expense(
+                description
+            )
+        )
+
+        # User correction is preserved
+        if (
+            category
+            and str(category).strip()
+        ):
+
+            category = str(
+                category
+            ).strip()
+
+        else:
+
+            category = predicted_category
+
+    else:
+
+        if (
+            not category
+            or not str(category).strip()
+        ):
+
+            category = "Other"
+
+        else:
+
+            category = str(
+                category
+            ).strip()
+
+    # ========================================================
+    # UPDATE
+    # ========================================================
+
     transactions_collection.update_one(
+
         {
-            "_id": ObjectId(transaction_id),
-            "user_id": session["user_id"]
+
+            "_id": object_id,
+
+            "user_id":
+                session["user_id"]
+
         },
+
         {
+
             "$set": {
-                "type": transaction_type,
-                "amount": float(amount),
-                "category": category,
-                "description": description,
-                "date": date
+
+                "type":
+                    transaction_type,
+
+                "amount":
+                    amount_value,
+
+                "category":
+                    category,
+
+                "predicted_category":
+                    predicted_category,
+
+                "description":
+                    description,
+
+                "date":
+                    date
+
             }
+
         }
+
     )
 
     return {
-        "message": "Transaction updated successfully"
+
+        "message":
+            "Transaction updated successfully"
+
     }, 200
-    # ============================================================
+
+
+# ============================================================
 # API - DELETE TRANSACTION
+#
+# Exact SRS endpoint:
+# DELETE /transactions/{id}
+#
+# /api/transactions/{id} is also kept for compatibility.
 # ============================================================
 
-@main_bp.route("/transactions/<transaction_id>", methods=["DELETE"])
-def api_delete_transaction(transaction_id):
+@main_bp.route(
+    "/transactions/<transaction_id>",
+    methods=["DELETE"]
+)
+@main_bp.route(
+    "/api/transactions/<transaction_id>",
+    methods=["DELETE"]
+)
+def api_delete_transaction(
+    transaction_id
+):
 
     if "user_id" not in session:
+
         return {
-            "error": "User not logged in"
+            "error":
+                "User not logged in"
         }, 401
 
+    try:
+
+        object_id = ObjectId(
+            transaction_id
+        )
+
+    except Exception:
+
+        return {
+            "error":
+                "Invalid transaction ID"
+        }, 400
+
     result = transactions_collection.delete_one({
-        "_id": ObjectId(transaction_id),
-        "user_id": session["user_id"]
+
+        "_id": object_id,
+
+        "user_id":
+            session["user_id"]
+
     })
 
     if result.deleted_count == 0:
+
         return {
-            "error": "Transaction not found"
+            "error":
+                "Transaction not found"
         }, 404
 
     return {
-        "message": "Transaction deleted successfully"
+
+        "message":
+            "Transaction deleted successfully"
+
     }, 200
-    # ============================================================
+
+
+# ============================================================
 # API - FINANCIAL INSIGHTS
+#
+# Exact SRS endpoint:
+# GET /insights
+#
+# /api/insights is also kept for compatibility.
 # ============================================================
 
-@main_bp.route("/insights", methods=["GET"])
+@main_bp.route(
+    "/insights",
+    methods=["GET"]
+)
+@main_bp.route(
+    "/api/insights",
+    methods=["GET"]
+)
 def api_insights():
 
     if "user_id" not in session:
+
         return {
-            "error": "User not logged in"
+            "error":
+                "User not logged in"
         }, 401
 
     user_id = session["user_id"]
 
+    # --------------------------------------------------------
+    # Transactions
+    # --------------------------------------------------------
+
     user_transactions = list(
+
         transactions_collection.find({
+
             "user_id": user_id
+
         })
+
     )
+
+    # --------------------------------------------------------
+    # Budgets
+    # --------------------------------------------------------
 
     user_budgets = list(
+
         budgets_collection.find({
+
             "user_id": user_id
+
         })
+
     )
 
+    # --------------------------------------------------------
+    # Generate insights
+    # --------------------------------------------------------
+
     insights = generate_financial_insights(
+
         user_transactions,
+
         user_budgets
+
     )
 
     return {
-        "insights": insights
+
+        "insights":
+            insights
+
     }, 200
+
+
+# ============================================================
+# LOGOUT
+# ============================================================
+
 @main_bp.route("/logout")
 def logout():
 
     session.clear()
 
-    return redirect(url_for("main.home"))
+    return redirect(
+        url_for("main.home")
+    )

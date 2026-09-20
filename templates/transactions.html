@@ -58,8 +58,11 @@
          ================================================== -->
 
     <form method="POST"
-          action="{{ url_for('main.transactions') }}">
+          action="{{ url_for('main.transactions') }}"
+          id="transaction-form">
 
+
+        <!-- Transaction Type -->
 
         <label for="type">
             Transaction Type
@@ -86,6 +89,8 @@
 
 
 
+        <!-- Amount -->
+
         <label for="amount">
             Amount
         </label>
@@ -96,12 +101,14 @@
             id="amount"
             name="amount"
             step="0.01"
-            min="0"
+            min="0.01"
             placeholder="Enter amount"
             required
         >
 
 
+
+        <!-- Category -->
 
         <label for="category">
             Category
@@ -117,6 +124,38 @@
         >
 
 
+        <!-- ML Prediction Display -->
+
+        <div id="prediction-box"
+             style="
+                display: none;
+                margin-top: -8px;
+                margin-bottom: 18px;
+                padding: 12px 14px;
+                background: #f0fdfa;
+                border: 1px solid #99f6e4;
+                border-radius: 10px;
+                color: #134e4a;
+                font-size: 14px;
+             ">
+
+            <strong>ML Predicted Category:</strong>
+
+            <span id="predicted-category">
+                -
+            </span>
+
+            <br>
+
+            <small>
+                You can change the category above if the prediction is incorrect.
+            </small>
+
+        </div>
+
+
+
+        <!-- Description -->
 
         <label for="description">
             Description
@@ -133,6 +172,8 @@
 
 
 
+        <!-- Date -->
+
         <label for="date">
             Date
         </label>
@@ -146,6 +187,8 @@
         >
 
 
+
+        <!-- Submit -->
 
         <button type="submit">
             Add Transaction
@@ -204,6 +247,8 @@
 
 
 
+        <!-- Transaction Table -->
+
         {% if transactions %}
 
 
@@ -260,9 +305,7 @@
 
                                 <td>
 
-                                    <span
-                                        class="transaction-type"
-                                    >
+                                    <span class="transaction-type">
                                         {{ transaction.type | title }}
                                     </span>
 
@@ -270,9 +313,7 @@
 
 
 
-                                <td
-                                    class="transaction-amount"
-                                >
+                                <td class="transaction-amount">
 
                                     ₹{{ "%.2f"|format(transaction.amount) }}
 
@@ -304,9 +345,7 @@
 
 
 
-                                <td
-                                    class="transaction-actions"
-                                >
+                                <td class="transaction-actions">
 
 
                                     <a
@@ -374,6 +413,160 @@
 
 
 </div>
+
+
+
+<!-- ==================================================
+     ML CATEGORY PREDICTION
+     ================================================== -->
+
+<script>
+
+    const typeInput = document.getElementById("type");
+
+    const descriptionInput =
+        document.getElementById("description");
+
+    const categoryInput =
+        document.getElementById("category");
+
+    const predictionBox =
+        document.getElementById("prediction-box");
+
+    const predictedCategory =
+        document.getElementById("predicted-category");
+
+
+    let predictionRequestId = 0;
+
+
+    async function predictCategory() {
+
+        const transactionType =
+            typeInput.value;
+
+        const description =
+            descriptionInput.value.trim();
+
+
+        /*
+         * ML categorization is only required
+         * for expenses.
+         */
+
+        if (
+            transactionType !== "expense" ||
+            description.length === 0
+        ) {
+
+            predictionBox.style.display = "none";
+
+            return;
+        }
+
+
+        const requestId =
+            ++predictionRequestId;
+
+
+        try {
+
+            const response = await fetch(
+                "{{ url_for('main.predict_category_api') }}",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        description: description
+                    })
+                }
+            );
+
+
+            const data =
+                await response.json();
+
+
+            /*
+             * Ignore an older request if
+             * the user has already typed again.
+             */
+
+            if (requestId !== predictionRequestId) {
+                return;
+            }
+
+
+            if (
+                response.ok &&
+                data.predicted_category
+            ) {
+
+                predictedCategory.textContent =
+                    data.predicted_category;
+
+                predictionBox.style.display =
+                    "block";
+
+
+                /*
+                 * Only automatically fill the
+                 * category if it is currently empty.
+                 *
+                 * This allows the user to correct
+                 * the prediction manually.
+                 */
+
+                if (
+                    categoryInput.value.trim() === ""
+                ) {
+
+                    categoryInput.value =
+                        data.predicted_category;
+                }
+
+            }
+
+        } catch (error) {
+
+            console.error(
+                "Category prediction error:",
+                error
+            );
+
+            predictionBox.style.display =
+                "none";
+        }
+
+    }
+
+
+    /*
+     * Predict when description changes.
+     */
+
+    descriptionInput.addEventListener(
+        "input",
+        predictCategory
+    );
+
+
+    /*
+     * Predict again when transaction type changes.
+     */
+
+    typeInput.addEventListener(
+        "change",
+        predictCategory
+    );
+
+
+</script>
 
 
 </body>
